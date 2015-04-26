@@ -23,7 +23,7 @@ def get_su(user_name):
     """
         得到转换后的用户名
     """
-    username_ = urllib.quote(user_name)     # html字符转义
+    username_ = urllib.quote(user_name)  # html字符转义
     username = base64.encodestring(username_)[:-1]
     return username
 
@@ -116,7 +116,7 @@ def do_login(user_name, passwd, cookie_file):
     print 'step2: Signin with post_data'
     p = re.compile('location\.replace\(\'(.*?)\'\)')
     try:
-        login_url2 = p.search(text).group(1)    # http://passport.weibo.com/wbsso/login/.../
+        login_url2 = p.search(text).group(1)  # http://passport.weibo.com/wbsso/login/.../
         data = urllib2.urlopen(login_url2).read()
         patt_feedback = 'feedBackUrlCallBack\((.*)\)'
         p = re.compile(patt_feedback, re.MULTILINE)
@@ -130,6 +130,31 @@ def do_login(user_name, passwd, cookie_file):
             return 0
     except:
         return 0
+
+
+def get_login_cookie(url):
+    from weibo_spider.spiders import settings
+
+    cookie_file = settings.COOKIE_FILE
+
+    if not os.path.exists(cookie_file):
+        user_name = settings.USER_NAME
+        passwd = settings.PASSWORD
+        do_login(user_name, passwd, cookie_file)
+
+    try:
+        cookie_jar = cookielib.LWPCookieJar(cookie_file)
+        cookie_jar.load(ignore_discard=True, ignore_expires=True)
+        print 'Load cookie succeeded'
+    except cookielib.LoadError:
+        return None
+    else:
+        cookie_d = {}
+        for cookie in cookie_jar:
+            domain = cookie.domain
+            if url.find(domain) > 0:
+                cookie_d[cookie.name] = cookie.value
+        return cookie_d
 
 
 def load_cookie(cookie_file):
@@ -162,9 +187,11 @@ def test_with_mayun():
     else:
         print 'Already Login'
 
+
 if __name__ == '__main__':
+    from weibo_spider.spiders import settings
+
     test_with_mayun()
-    from weibo_spider.tests import settings
     if login(settings.USER_NAME, settings.PASSWORD, settings.COOKIE_FILE):
         print 'Login Weibo succeeded'
         test_with_mayun()
